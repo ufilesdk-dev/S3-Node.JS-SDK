@@ -9,7 +9,7 @@ async function listObjects(bucketName, maxKeys = 1000) {
         });
 
         let isTruncated = true;
-        let contents = "";
+        let contents = [];
         let continuationToken;
 
         console.log("Your bucket contains the following objects:\n");
@@ -21,17 +21,26 @@ async function listObjects(bucketName, maxKeys = 1000) {
             }
 
             const response = await s3.send(new ListObjectsV2Command(params));
-            const contentsList = response.Contents.map((c) => ` • ${c.Key}`).join("\n");
-            contents += contentsList + "\n";
+            const newContents = response.Contents.map((c) => ` • ${c.Key}`);
+
+            contents.push(...newContents);
+
+            if (contents.length >= maxKeys) {
+                contents = contents.slice(0, maxKeys);
+                isTruncated = false;
+            }
+
             isTruncated = response.IsTruncated;
             continuationToken = response.NextContinuationToken;
         }
 
-        console.log(contents);
+        console.log(contents.join("\n"));
     } catch (err) {
-        console.error("Error listing objects:", err);
+        console.error("Error listing objects:", err, err.stack);
     }
 }
+
+
 
 const args = process.argv.slice(2);
 if (args.length !== 1 && args.length !== 2) {
