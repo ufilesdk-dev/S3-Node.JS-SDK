@@ -30,15 +30,13 @@ const sliceUpload = async (bucketName, key, filePath) => {
         );
 
         uploadId = createMultipartUploadResponse.UploadId;
-        const uploadPromises = [];
+        const uploadedParts = [];
 
-        // 分片上传
         for (let partNumber = 1; partNumber <= numParts; partNumber++) {
             const start = (partNumber - 1) * partSize;
             const end = Math.min(start + partSize, fileBuffer.length);
             const partBuffer = fileBuffer.subarray(start, end);
             const md5Hash = calculateMD5(partBuffer);
-
             const uploadPartCommand = new UploadPartCommand({
                 Bucket: bucketName,
                 Key: key,
@@ -48,17 +46,15 @@ const sliceUpload = async (bucketName, key, filePath) => {
                 ContentMD5: md5Hash,
             });
 
-            uploadPromises.push(
-                s3.send(uploadPartCommand).then((uploadPartResponse) => ({
-                    ETag: uploadPartResponse.ETag,
-                    PartNumber: partNumber,
-                }))
-            );
+            const uploadPartResponse = await s3.send(uploadPartCommand);
+            console.log(`Part ${partNumber} uploaded successfully`);
+            uploadedParts.push({
+                ETag: uploadPartResponse.ETag,
+                PartNumber: partNumber,
+            });
         }
 
-        const uploadedParts = await Promise.all(uploadPromises);
-
-        // 验证每个分片是否正确上传
+        // 验证分片
         uploadedParts.forEach((part) => {
             if (!part.ETag) {
                 throw new Error(`Part ${part.PartNumber} failed to upload.`);
@@ -82,7 +78,7 @@ const sliceUpload = async (bucketName, key, filePath) => {
         console.error("Error uploading file:", error);
 
         if (uploadId) {
-            // 如果上传失败，可以选择在此处中止上传
+            // 中止上传
             await s3.send(
                 new AbortMultipartUploadCommand({
                     Bucket: bucketName,
@@ -102,4 +98,4 @@ if (args.length === 3) {
         .catch((err) => console.error("Upload failed", err));
 } else {
     console.log("Usage: node SliceUpload.js <bucketName> <keyName> <filePath>");
-''}
+}
