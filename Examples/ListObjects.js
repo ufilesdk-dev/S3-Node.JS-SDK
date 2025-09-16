@@ -28,10 +28,10 @@ async function listObjects(bucketName, maxKeys = 1000) {
             if (contents.length >= maxKeys) {
                 contents = contents.slice(0, maxKeys);
                 isTruncated = false;
+            } else {
+                isTruncated = response.IsTruncated;
+                continuationToken = response.NextContinuationToken;
             }
-
-            isTruncated = response.IsTruncated;
-            continuationToken = response.NextContinuationToken;
         }
 
         console.log(contents.join("\n"));

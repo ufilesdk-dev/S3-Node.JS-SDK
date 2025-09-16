@@ -9,7 +9,6 @@ const s3 = new S3Client({
     endpoint: "",  // http://s3-cn-sh2.ufileos.com
     region: "",   // cn-sh2
     signatureVersion: 'v4',
-    forcePathStyle: true,   // 路径风格
     credentials: credentials,  
 });
 
